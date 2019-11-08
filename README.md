@@ -70,3 +70,7 @@ Try several BVH files
 - I.e. Don't hardcode hierarchy
 - Tips on reading and interpreting **BVH** files:
 				- http://www.cs.wisc.edu/graphics/Courses/cs-838-1999/Jeff/BVH.html 
+
+## Screenshot
+Status: Work In Progress
+![Alt text](screen_grab.png "Screenshot")
