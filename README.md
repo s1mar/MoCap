@@ -73,4 +73,4 @@ Try several BVH files
 
 ## Screenshot
 Status: Work In Progress
-![Alt text](screen_grab.png "Screenshot")
+![Alt text](screen_grab.jpg "Screenshot")
