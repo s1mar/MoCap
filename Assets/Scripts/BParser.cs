@@ -1,12 +1,13 @@
-﻿using System.Collections;
+﻿
 using System.Collections.Generic;
 using UnityEngine;
 using System.IO;
 
 public class BParser
 {
+    public static RawParseResult parse(string body) {
 
-    public static RawJoint parse(string body) {
+        body = body.Replace("\t", " ");
 
         StringReader stringReader = new StringReader(body);
         string line;
@@ -18,29 +19,106 @@ public class BParser
         }
 
         ParseResult<RawJoint> result= parseSetOfLines(linesToProcess);
-        return result.Deliverable.getFirstChild();
+
+        RawParseResult rawParseResult = new RawParseResult();
+        rawParseResult.RawJoint = result.Deliverable.getFirstChild();
+
+        #region extract raw motion data from the bvh file body
+
+        //int lastLineProcessedIndex = result.LastProcessed_Index;
+
+        //The motion data is on the lines beyond the last line processed, let's get cracking
+        //List<string> linesWithMotionData = linesToProcess.GetRange(lastLineProcessedIndex,(linesToProcess.Count-1)-lastLineProcessedIndex);
+        
+        //What I am doing below is highly in-efficient but I'm running out of time, I'm gonna optimize it someday later
+        List<string> linesWithMotionData = new List<string>(0);
+
+        int pointer = linesToProcess.Count - 1;
+        while (true) {
+            string lineScan = linesToProcess[pointer--];
+            if (lineScan.IndexOf(Token.MOTION) > -1) {
+                break;
+            }
+
+            linesWithMotionData.Add(lineScan);
+        }
+
+        linesWithMotionData.Reverse();
+        List<float> frameDatumList = new List<float>();
+
+        foreach (string l in linesWithMotionData) {
+
+            if (l.IndexOf(Token.MOTION) > -1)
+            {
+                continue;
+            }
+            else if (l.IndexOf(Token.FRAMES) > -1)
+            {
+                //extract the number of frames
+                string possibleData = l.Substring(Token.FRAMES.Length).Trim();
+                rawParseResult.NumFrames = int.Parse(possibleData);
+            }
+            else if (l.IndexOf(Token.FRAME_TIME) > -1)
+            {
+                //extract the frame time
+                string possibleData = l.Substring(Token.FRAME_TIME.Length).Trim();
+                rawParseResult.FrameTime = float.Parse(possibleData);
+            }
+            else {
+                //These lines are either empty or have some channel datum, keep isolating and adding them to the raw list
+                string[] substrings = l.Split(null);
+                foreach (string s in substrings) {
+                    if (string.IsNullOrEmpty(s) || string.IsNullOrWhiteSpace(s)) {
+                        continue;
+                    }
+
+                    float value = float.Parse(s);
+                    frameDatumList.Add(value);
+                }
+            }
+        }
+
+        rawParseResult.FrameData = frameDatumList;
+        #endregion
+
+
+        return rawParseResult;
 
     }
 
-    public static Joint refineRawJointDataIntoJoints(RawJoint rawJoint) {
+    public static void assigningFrameDataToChannelDescriptors(Queue<float> frameDatumQueue, List<ChannelDescriptor> channels) {
+        int pointerToChannels = 0;
+        while (frameDatumQueue.Count > 0) {
+            float frameDatum = frameDatumQueue.Dequeue();
+            channels[pointerToChannels].addFrameData(frameDatum);
+            pointerToChannels += 1;
+            pointerToChannels = pointerToChannels >= channels.Count ? 0 : pointerToChannels;
+        }
+        
+    }
+
+    public static Joint refineRawJointDataIntoJoints(RawJoint rawJoint, ref List<ChannelDescriptor> channels) {
 
         Joint joint = new Joint();
 
         joint.name = rawJoint.name;
 
-        joint.addChannels(extractChannels(rawJoint));
-
-        joint.setOffset(extractVectorQuanity(rawJoint.offset));
+        List<ChannelDescriptor> channelsExtracted = extractChannels(rawJoint);
+        
+        joint.addChannels(channelsExtracted);
+        channels.AddRange(channelsExtracted);
+        
+        joint.setOffset(extractVectorQuantity(rawJoint.offset));
 
         foreach (RawJoint j in rawJoint.getEnumerator()) {
-            Joint jointChild = refineRawJointDataIntoJoints(j);
+            Joint jointChild = refineRawJointDataIntoJoints(j,ref channels);
             joint.AddChild(jointChild);
         }
 
         return joint;
     }
 
-    private static Vector3 extractVectorQuanity(string supposedVectorThreeAsString) {
+    private static Vector3 extractVectorQuantity(string supposedVectorThreeAsString) {
 
         Vector3 offset = new Vector3(0, 0, 0);
         try
@@ -67,6 +145,8 @@ public class BParser
 
         return offset;
     }
+
+    
 
     private static List<ChannelDescriptor> extractChannels(RawJoint rawJoint) {
         List<ChannelDescriptor> channelDescriptors = new List<ChannelDescriptor>(0);
@@ -113,6 +193,7 @@ public class BParser
                 }
             }
 
+         
             return channelDescriptors;
         }   
         
@@ -214,6 +295,21 @@ public class BParser
         public static readonly string CLOSING_BRACE = "}";
         public static readonly string OFFSET = "OFFSET";
         public static readonly string CHANNELS = "CHANNELS";
+
+        public static readonly string MOTION = "MOTION";
+        public static readonly string FRAMES = "Frames:";
+        public static readonly string FRAME_TIME = "Frame Time:";
+    }
+
+    public class RawParseResult { 
+    
+        public RawJoint RawJoint { get; set; }
+        public List<float> FrameData { get; set; }
+        
+        public int NumFrames { get; set; }
+        
+        public float FrameTime { get; set; } // this will be used to determine the FPS
+    
     }
 
     public class ParseResult<T>{

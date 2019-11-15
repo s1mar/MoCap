@@ -20,8 +20,16 @@ public class TestSuite : MonoBehaviour
     void parseTest1() {
         
         TextAsset rawBvhFile = Resources.Load("ex1") as TextAsset;
-        RawJoint rawJoint = BParser.parse(rawBvhFile.text);
-        Joint refinedJoint = BParser.refineRawJointDataIntoJoints(rawJoint);
+        
+        BParser.RawParseResult rawParseResult = BParser.parse(rawBvhFile.text);
+        RawJoint rawJoint = rawParseResult.RawJoint;
+        
+    
+        List<ChannelDescriptor> channelsExtracted = new List<ChannelDescriptor>(0);
+        
+        Joint refinedJoint = BParser.refineRawJointDataIntoJoints(rawJoint,ref channelsExtracted);
+        //This statement below should technically update all the channel descriptors 
+        BParser.assigningFrameDataToChannelDescriptors(new Queue<float>(rawParseResult.FrameData), channelsExtracted);
         Debug.Log("The name of the joint:");
     }
 }
