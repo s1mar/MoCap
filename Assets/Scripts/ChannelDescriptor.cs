@@ -14,13 +14,13 @@ public void addFrameData(float frameDatum){
     frameData.Add(frameDatum);
 }
 
-public Double popFrameData(){
+public float popFrameData(){
 
     if(pointer>=frameData.Count){
         throw new System.ArgumentOutOfRangeException();
     }
 
-    Double frameDatum = frameData[pointer++];
+    float frameDatum = frameData[pointer++];
     return frameDatum;
 }
 

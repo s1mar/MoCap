@@ -1,8 +1,7 @@
-﻿using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 
-public class Joint 
+public class JointModel 
 {
    
     public string name { get; set; }
@@ -11,14 +10,20 @@ public class Joint
     private Transform selfTransform;
     private Transform parentTransform;
     private List<ChannelDescriptor> channels;
-    private List<Joint> childrenJoints = new List<Joint>();
+    private List<JointModel> childrenJoints = new List<JointModel>();
 
 
-    public void AddChild(Joint joint) {
+    public void AddChild(JointModel joint) {
 
         childrenJoints.Add(joint);
     }
 
+    public void setPosRelativeToTheParent(Vector3 parentPos) {
+        Vector3 newPos = parentPos + offset;
+        if (selfTransform != null) {
+            selfTransform.localPosition = newPos;
+        }
+    }
     public void setOffset(Vector3 offset){
         this.offset = offset;
     }
@@ -57,11 +62,11 @@ public class Joint
         this.channels = channels;
     }
 
-    public void addJoint(Joint joint){
+    public void addJoint(JointModel joint){
         childrenJoints.Add(joint);
     }
 
-    public IEnumerable<Joint> getIteratorChildJoints(){
+    public IEnumerable<JointModel> getIteratorChildJoints(){
         foreach (var joint in childrenJoints)
         {
             yield return joint;
