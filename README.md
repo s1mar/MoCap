@@ -1,4 +1,4 @@
-﻿# Assignment 3 -mocap
+﻿# Mocap - Motion Capture Simulation
 
 ## Goal
 
